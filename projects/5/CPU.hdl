@@ -33,4 +33,8 @@ CHIP CPU {
 
     PARTS:
 	//// Replace this comment with your code.
+    Not(in=instruction[15], out=isAInstruction);
+    ARegister(in=instruction, load=isAInstruction, out[0..14]=addressM, out=jumpAddress);
+    // インクリメントするかジャンプするかはジャンプ命令の結果で判断する
+    PC(in=jumpAddress, load=false, inc=true, reset=reset, out[0..14]=pc);    
 }
