@@ -33,8 +33,14 @@ CHIP CPU {
 
     PARTS:
 	//// Replace this comment with your code.
+    DRegister(in=inD, load=instruction[4], out=inALUX);
+    Mux16(a=inMux, b=instruction, sel=instruction[5], out=inARegister);
     Not(in=instruction[15], out=isAInstruction);
-    ARegister(in=instruction, load=isAInstruction, out[0..14]=addressM, out=jumpAddress);
+    ARegister(in=inARegister, load=isAInstruction, out=outARegister, out[0..14]=addressM, out=jumpAddress);
+    Mux16(a=outARegister, b=inM , sel=instruction[12], out=inALUY);
+    ALU(x=inALUX, y=inALUY, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=outM, out=inD, out=inMux);
     // インクリメントするかジャンプするかはジャンプ命令の結果で判断する
-    PC(in=jumpAddress, load=false, inc=true, reset=reset, out[0..14]=pc);    
+    PC(in=jumpAddress, load=false, inc=true, reset=reset, out[0..14]=pc);
+    // writeM に書き込むためAndチップを利用した
+    And(a=instruction[3], b=true, out=writeM);
 }
