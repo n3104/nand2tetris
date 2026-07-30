@@ -33,14 +33,67 @@ CHIP CPU {
 
     PARTS:
 	//// Replace this comment with your code.
-    DRegister(in=inD, load=instruction[4], out=inALUX);
-    Mux16(a=inMux, b=instruction, sel=instruction[5], out=inARegister);
     Not(in=instruction[15], out=isAInstruction);
-    ARegister(in=inARegister, load=isAInstruction, out=outARegister, out[0..14]=addressM, out=jumpAddress);
+    Not(in=isAInstruction, out=isCInstruction);
+    // C命令かつ instruction[3] = 1 の時にALUの計算結果をメモリに書き込む
+    And(a=isCInstruction, b=instruction[3], out=writeM);
+    // C命令かつ instruction[4] = 1 の時にALUの計算結果をDレジスタに書き込む
+    And(a=isCInstruction, b=instruction[4], out=loadDRegister);
+    DRegister(in=inD, load=loadDRegister, out=inALUX);
+    // C命令かつ instruction[5] = 1 の時にALUの計算結果をAレジスタに書き込む
+    And(a=isCInstruction, b=instruction[5], out=saveALUResult);
+    Mux16(a=instruction, b=inMux, sel=saveALUResult, out=inARegister);
+    // A命令の場合もしくはALUの計算結果をAレジスタに書き込む場合はAレジスタを更新する
+    Or(a=isAInstruction, b=saveALUResult, out=loadARegister);
+    ARegister(in=inARegister, load=loadARegister, out=outARegister, out[0..14]=addressM, out=jumpAddress);
     Mux16(a=outARegister, b=inM , sel=instruction[12], out=inALUY);
-    ALU(x=inALUX, y=inALUY, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], out=outM, out=inD, out=inMux);
+    ALU(x=inALUX, y=inALUY, zx=instruction[11], nx=instruction[10], zy=instruction[9], ny=instruction[8], f=instruction[7], no=instruction[6], zr=zr, ng=ng, out=outM, out=inD, out=inMux);
     // インクリメントするかジャンプするかはジャンプ命令の結果で判断する
-    PC(in=jumpAddress, load=false, inc=true, reset=reset, out[0..14]=pc);
-    // writeM に書き込むためAndチップを利用した
-    And(a=instruction[3], b=true, out=writeM);
+    PC(in=jumpAddress, load=doJump, inc=doInc, reset=reset, out[0..14]=pc);
+
+    // ジャンプ命令の結果は回路の自作が必要
+    Not(in=instruction[2], out=notInstruction2);
+    Not(in=instruction[1], out=notInstruction1);
+    Not(in=instruction[0], out=notInstruction0);
+    Not(in=zr, out=notZr);
+    Not(in=ng, out=notNg);
+    // null 0 0 0 ジャンプなしは false 固定
+    Not(in=true, out=null);
+    // JGT 0 0 1 if comp > 0 jump
+    And(a=notInstruction2, b=notInstruction1, out=jgt1);
+    And(a=jgt1, b=instruction[0], out=jgt2);
+    And(a=jgt2, b=notZr, out=jgt3);
+    And(a=jgt3, b=notNg, out=jgt);
+    // JEQ 0 1 0 if comp = 0 jump
+    And(a=notInstruction2, b=instruction[1], out=jeq1);
+    And(a=jeq1, b=notInstruction0, out=jeq2);
+    And(a=jeq2, b=zr, out=jeq);
+    // JGE 0 1 1 if comp ≥ 0 jump
+    And(a=notInstruction2, b=instruction[1], out=jge1);
+    And(a=jge1, b=instruction[0], out=jge2);
+    And(a=jge2, b=zr, out=jge3);
+    And(a=jge2, b=notNg, out=jge4);
+    Or(a=jge3, b=jge4, out=jge);
+    // JLT 1 0 0 if comp < 0 jump
+    And(a=instruction[2], b=notInstruction1, out=jlt1);
+    And(a=jlt1, b=notInstruction0, out=jlt2);
+    And(a=jlt2, b=notZr, out=jlt3);
+    And(a=jlt3, b=ng, out=jlt);
+    // JNE 1 0 1 if comp ≠ 0 jump
+    And(a=instruction[2], b=notInstruction1, out=jne1);
+    And(a=jne1, b=instruction[0], out=jne2);
+    And(a=jne2, b=notZr, out=jne);
+    // JLE 1 1 0 if comp ≤ 0 jump
+    And(a=instruction[2], b=instruction[1], out=jle1);
+    And(a=jle1, b=notInstruction0, out=jle2);
+    And(a=jle2, b=zr, out=jle3);
+    And(a=jle2, b=ng, out=jle4);
+    Or(a=jle3, b=jle4, out=jle);
+    // JMP 1 1 1 無条件ジャンプ
+    And(a=instruction[2], b=instruction[1], out=jmp1);
+    And(a=jmp1, b=instruction[0], out=jmp);
+    Or8Way(in[0]=null, in[1]=jgt, in[2]=jeq, in[3]=jge, in[4]=jlt, in[5]=jne, in[6]=jle, in[7]=jmp, out=mayJump);
+    // A命令の場合はインクリメントになるのでC命令かつジャンプ条件を満たしているか確認する
+    And(a=mayJump, b=isCInstruction, out=doJump);
+    Not(in=doJump, out=doInc);
 }
