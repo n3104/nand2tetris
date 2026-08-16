@@ -26,4 +26,19 @@ CHIP Memory {
 
     PARTS:
 	//// Replace this comment with your code.
+    // 14ビットで16384になるので、それぞれ以下になる。
+    // 13=0, 14=0 -> 8191以下。RAM16Kの範囲
+    // 13=1, 14=0 -> 16384以下。RAM16Kの範囲
+    // 13=0, 14=1 -> 16384以上。Screenの先頭
+    // 13=1, 14=1 -> 24576以上。Keyboardの先頭
+    DMux4Way(in=true, sel=address[13..14], a=a, b=b, c=c, d=d);
+    Or(a=a, b=b, out=isRAM16K);
+    And(a=isRAM16K, b=load, out=loadRAM16K);
+    And(a=c, b=load, out=loadScreen);
+    // それぞれのチップに接続する
+    RAM16K(in=in, load=loadRAM16K, address=address[0..13], out=outRAM16K);
+    Screen(in=in, load=loadScreen, address=address[0..12], out=outScreen);
+    Keyboard(out=outKeyboard);
+    // それぞれチップの出力結果から実際に利用したチップの出力を採用する
+    Mux4Way16(a=outRAM16K, b=outRAM16K, c=outScreen, d=outKeyboard, sel=address[13..14], out=out);
 }
