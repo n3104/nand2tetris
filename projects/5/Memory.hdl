@@ -28,7 +28,7 @@ CHIP Memory {
 	//// Replace this comment with your code.
     // 14ビットで16384になるので、それぞれ以下になる。
     // 13=0, 14=0 -> 8191以下。RAM16Kの範囲
-    // 13=1, 14=0 -> 16384以下。RAM16Kの範囲
+    // 13=1, 14=0 -> 16383以下。RAM16Kの範囲
     // 13=0, 14=1 -> 16384以上。Screenの先頭
     // 13=1, 14=1 -> 24576以上。Keyboardの先頭
     DMux4Way(in=true, sel=address[13..14], a=a, b=b, c=c, d=d);
