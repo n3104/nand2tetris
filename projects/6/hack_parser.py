@@ -35,7 +35,7 @@ class Parser:
         """次の行の命令行を取得する（空白とコメントはスキップする）"""
         while True:
             line = self._file_obj.readline()
-            
+            # print(line)
             # EOF (ファイル末尾) に達した場合
             if line == "":
                 return ""
