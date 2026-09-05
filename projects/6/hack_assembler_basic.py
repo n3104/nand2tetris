@@ -7,7 +7,7 @@ from pathlib import Path
 def main() -> None:
     # 引数のチェック（スクリプト名自身も含まれるため len は 1 以上）
     if len(sys.argv) < 2:
-        print("使用方法: python3 HackAssembler_Basic.py Prog.asm")
+        print("使用方法: python3 hack_assembler_basic.py Prog.asm")
         sys.exit(1)
 
     asm_file_path = sys.argv[1]
