@@ -49,4 +49,10 @@ class CodeWriter:
             raise RuntimeError(f"サポート外のコマンドです: {command}")
 
     def close(self) -> None:
+        # 最後に無限ループを入れておく
+        f_out = self._f_out
+        f_out.write(f"// END loop\n")
+        f_out.write(f"(END)\n")
+        f_out.write(f"@END\n")
+        f_out.write(f"0;JMP") # 最終行は改行コードを入れない
         return self._f_out.close()
