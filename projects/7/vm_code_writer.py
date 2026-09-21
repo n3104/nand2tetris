@@ -7,6 +7,7 @@ class CodeWriter:
     def __init__(self, file_path: Path, encoding: str = "utf-8"):
         self._f_out = file_path.open("w", encoding="utf-8")
         f_out = self._f_out
+        self._label_num = 0
         f_out.write(f"// set stack base address\n")
         f_out.write(f"@256\n")
         f_out.write(f"D=A\n")
@@ -17,16 +18,206 @@ class CodeWriter:
         f_out = self._f_out
         if command == "add":
             f_out.write(f"// add\n")
+            # まず2つ手前の値をデータレジスタに乗せる
             f_out.write(f"@SP\n")
-            f_out.write(f"M=M-1\n")
-            f_out.write(f"A=M\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"A=A-1\n")
             f_out.write(f"D=M\n")
+            # 1つ手前の値と演算できるようにアドレスを進める
+            f_out.write(f"A=A+1\n")
+            f_out.write(f"D=D+M\n")
+            # 演算結果を2つ手前のアドレスに保存する
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"M=D\n")
+            # 最後にSPを1つ減らす
             f_out.write(f"@SP\n")
             f_out.write(f"M=M-1\n")
-            f_out.write(f"A=M\n")
-            f_out.write(f"M=D+M\n")
+        elif command == "sub":
+            f_out.write(f"// sub\n")
+            # まず2つ手前の値をデータレジスタに乗せる
             f_out.write(f"@SP\n")
-            f_out.write(f"M=M+1\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"D=M\n")
+            # 1つ手前の値と演算できるようにアドレスを進める
+            f_out.write(f"A=A+1\n")
+            f_out.write(f"D=D-M\n") # ここだけ違う
+            # 演算結果を2つ手前のアドレスに保存する
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"M=D\n")
+            # 最後にSPを1つ減らす
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=M-1\n")
+        elif command == "neg":
+            f_out.write(f"// neg\n")
+            # 1つ手前の値にマイナスをかける。SPの変更は不要
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"M=-M\n")
+        elif command == "eq":
+            f_out.write(f"// eq\n")
+            # まず2つ手前の値をデータレジスタに乗せる
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"D=M\n")
+            # 1つ手前の値と演算できるようにアドレスを進める
+            f_out.write(f"A=A+1\n")
+            f_out.write(f"D=D-M\n") # ここだけ違う
+            # 演算結果を2つ手前のアドレスに保存する
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"M=D\n")
+            # 最後にSPを1つ減らす
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=M-1\n")
+            # 1つ手前の値で判定する。SPの変更は不要
+            self._label_num += 1
+            label_num = self._label_num
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"D=M\n")
+            f_out.write(f"@JEQ_{label_num}\n")
+            f_out.write(f"D;JEQ\n")
+            # false
+            f_out.write(f"@0\n") # false
+            f_out.write(f"D=A\n")
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"M=D\n")
+            f_out.write(f"@JEQ_{label_num}_END\n")
+            f_out.write(f"0;JMP\n")
+            # true
+            f_out.write(f"(JEQ_{label_num})\n")
+            f_out.write(f"@0\n") # true
+            f_out.write(f"A=A-1\n") # @-1 は掛けないのでマイナス1する
+            f_out.write(f"D=A\n")
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"M=D\n")
+            # end
+            f_out.write(f"(JEQ_{label_num}_END)\n")
+        elif command == "gt":
+            f_out.write(f"// gt\n")
+            # まず2つ手前の値をデータレジスタに乗せる
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"D=M\n")
+            # 1つ手前の値と演算できるようにアドレスを進める
+            f_out.write(f"A=A+1\n")
+            f_out.write(f"D=D-M\n") # ここだけ違う
+            # 演算結果を2つ手前のアドレスに保存する
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"M=D\n")
+            # 最後にSPを1つ減らす
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=M-1\n")
+            # 1つ手前の値で判定する。SPの変更は不要
+            self._label_num += 1
+            label_num = self._label_num
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"D=M\n")
+            f_out.write(f"@JGT_{label_num}\n")
+            f_out.write(f"D;JGT\n")
+            # false
+            f_out.write(f"@0\n") # false
+            f_out.write(f"D=A\n")
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"M=D\n")
+            f_out.write(f"@JGT_{label_num}_END\n")
+            f_out.write(f"0;JMP\n")
+            # true
+            f_out.write(f"(JGT_{label_num})\n")
+            f_out.write(f"@0\n") # true
+            f_out.write(f"A=A-1\n") # @-1 は掛けないのでマイナス1する
+            f_out.write(f"D=A\n")
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"M=D\n")
+            # end
+            f_out.write(f"(JGT_{label_num}_END)\n")
+        elif command == "lt":
+            f_out.write(f"// lt\n")
+            # まず2つ手前の値をデータレジスタに乗せる
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"D=M\n")
+            # 1つ手前の値と演算できるようにアドレスを進める
+            f_out.write(f"A=A+1\n")
+            f_out.write(f"D=D-M\n") # ここだけ違う
+            # 演算結果を2つ手前のアドレスに保存する
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"M=D\n")
+            # 最後にSPを1つ減らす
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=M-1\n")
+            # 1つ手前の値で判定する。SPの変更は不要
+            self._label_num += 1
+            label_num = self._label_num
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"D=M\n")
+            f_out.write(f"@JLT_{label_num}\n")
+            f_out.write(f"D;JLT\n")
+            # false
+            f_out.write(f"@0\n") # false
+            f_out.write(f"D=A\n")
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"M=D\n")
+            f_out.write(f"@JLT_{label_num}_END\n")
+            f_out.write(f"0;JMP\n")
+            # true
+            f_out.write(f"(JLT_{label_num})\n")
+            f_out.write(f"@0\n") # true
+            f_out.write(f"A=A-1\n") # @-1 は掛けないのでマイナス1する
+            f_out.write(f"D=A\n")
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"M=D\n")
+            # end
+            f_out.write(f"(JLT_{label_num}_END)\n")
+        elif command == "and":
+            f_out.write(f"// and\n")
+            # まず2つ手前の値をデータレジスタに乗せる
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"D=M\n")
+            # 1つ手前の値と演算できるようにアドレスを進める
+            f_out.write(f"A=A+1\n")
+            f_out.write(f"D=D&M\n") # ここだけ違う
+            # 演算結果を2つ手前のアドレスに保存する
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"M=D\n")
+            # 最後にSPを1つ減らす
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=M-1\n")
+        elif command == "or":
+            f_out.write(f"// or\n")
+            # まず2つ手前の値をデータレジスタに乗せる
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"D=M\n")
+            # 1つ手前の値と演算できるようにアドレスを進める
+            f_out.write(f"A=A+1\n")
+            f_out.write(f"D=D|M\n") # ここだけ違う
+            # 演算結果を2つ手前のアドレスに保存する
+            f_out.write(f"A=A-1\n")
+            f_out.write(f"M=D\n")
+            # 最後にSPを1つ減らす
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=M-1\n")
+        elif command == "not":
+            f_out.write(f"// not\n")
+            # 1つ手前の値をNotする。SPの変更は不要
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M-1\n")
+            f_out.write(f"M=!M\n")
         else:
             raise RuntimeError(f"サポート外のコマンドです: {command}")
 
