@@ -8,11 +8,6 @@ class CodeWriter:
         self._f_out = file_path.open("w", encoding="utf-8")
         f_out = self._f_out
         self._label_num = 0
-        f_out.write(f"// set stack base address\n")
-        f_out.write(f"@256\n")
-        f_out.write(f"D=A\n")
-        f_out.write(f"@SP\n")
-        f_out.write(f"M=D\n")
 
     def write_arithmetic(self, command: str) -> None:
         if command in ["add", "sub", "and", "or"]:
