@@ -16,38 +16,8 @@ class CodeWriter:
 
     def write_arithmetic(self, command: str) -> None:
         f_out = self._f_out
-        if command == "add":
-            f_out.write(f"// add\n")
-            # まず2つ手前の値をデータレジスタに乗せる
-            f_out.write(f"@SP\n")
-            f_out.write(f"A=M-1\n")
-            f_out.write(f"A=A-1\n")
-            f_out.write(f"D=M\n")
-            # 1つ手前の値と演算できるようにアドレスを進める
-            f_out.write(f"A=A+1\n")
-            f_out.write(f"D=D+M\n")
-            # 演算結果を2つ手前のアドレスに保存する
-            f_out.write(f"A=A-1\n")
-            f_out.write(f"M=D\n")
-            # 最後にSPを1つ減らす
-            f_out.write(f"@SP\n")
-            f_out.write(f"M=M-1\n")
-        elif command == "sub":
-            f_out.write(f"// sub\n")
-            # まず2つ手前の値をデータレジスタに乗せる
-            f_out.write(f"@SP\n")
-            f_out.write(f"A=M-1\n")
-            f_out.write(f"A=A-1\n")
-            f_out.write(f"D=M\n")
-            # 1つ手前の値と演算できるようにアドレスを進める
-            f_out.write(f"A=A+1\n")
-            f_out.write(f"D=D-M\n") # ここだけ違う
-            # 演算結果を2つ手前のアドレスに保存する
-            f_out.write(f"A=A-1\n")
-            f_out.write(f"M=D\n")
-            # 最後にSPを1つ減らす
-            f_out.write(f"@SP\n")
-            f_out.write(f"M=M-1\n")
+        if command in ["add", "sub", "and", "or"]:
+            self._write_binary_op(command)
         elif command == "neg":
             f_out.write(f"// neg\n")
             # 1つ手前の値にマイナスをかける。SPの変更は不要
@@ -180,38 +150,6 @@ class CodeWriter:
             f_out.write(f"M=D\n")
             # end
             f_out.write(f"(JLT_{label_num}_END)\n")
-        elif command == "and":
-            f_out.write(f"// and\n")
-            # まず2つ手前の値をデータレジスタに乗せる
-            f_out.write(f"@SP\n")
-            f_out.write(f"A=M-1\n")
-            f_out.write(f"A=A-1\n")
-            f_out.write(f"D=M\n")
-            # 1つ手前の値と演算できるようにアドレスを進める
-            f_out.write(f"A=A+1\n")
-            f_out.write(f"D=D&M\n") # ここだけ違う
-            # 演算結果を2つ手前のアドレスに保存する
-            f_out.write(f"A=A-1\n")
-            f_out.write(f"M=D\n")
-            # 最後にSPを1つ減らす
-            f_out.write(f"@SP\n")
-            f_out.write(f"M=M-1\n")
-        elif command == "or":
-            f_out.write(f"// or\n")
-            # まず2つ手前の値をデータレジスタに乗せる
-            f_out.write(f"@SP\n")
-            f_out.write(f"A=M-1\n")
-            f_out.write(f"A=A-1\n")
-            f_out.write(f"D=M\n")
-            # 1つ手前の値と演算できるようにアドレスを進める
-            f_out.write(f"A=A+1\n")
-            f_out.write(f"D=D|M\n") # ここだけ違う
-            # 演算結果を2つ手前のアドレスに保存する
-            f_out.write(f"A=A-1\n")
-            f_out.write(f"M=D\n")
-            # 最後にSPを1つ減らす
-            f_out.write(f"@SP\n")
-            f_out.write(f"M=M-1\n")
         elif command == "not":
             f_out.write(f"// not\n")
             # 1つ手前の値をNotする。SPの変更は不要
@@ -220,6 +158,35 @@ class CodeWriter:
             f_out.write(f"M=!M\n")
         else:
             raise RuntimeError(f"サポート外のコマンドです: {command}")
+
+    def _write_binary_op(self, command: str) -> None:
+        f_out = self._f_out
+        if command == "add":
+            op = "D=D+M"
+        elif command == "sub":
+            op = "D=D-M"
+        elif command == "and":
+            op = "D=D&M"
+        elif command == "or":
+            op = "D=D|M"
+        else:
+            raise RuntimeError(f"サポート外のコマンドです: {command}")
+
+        f_out.write(f"// {command}\n")
+        # まず2つ手前の値をデータレジスタに乗せる
+        f_out.write(f"@SP\n")
+        f_out.write(f"A=M-1\n")
+        f_out.write(f"A=A-1\n")
+        f_out.write(f"D=M\n")
+        # 1つ手前の値と演算できるようにアドレスを進める
+        f_out.write(f"A=A+1\n")
+        f_out.write(f"{op}\n") # ここだけ違う
+        # 演算結果を2つ手前のアドレスに保存する
+        f_out.write(f"A=A-1\n")
+        f_out.write(f"M=D\n")
+        # 最後にSPを1つ減らす
+        f_out.write(f"@SP\n")
+        f_out.write(f"M=M-1\n")
 
     def write_push_pop(self, command: str, segment:str, index: int) -> None:
         f_out = self._f_out
