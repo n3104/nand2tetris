@@ -111,14 +111,80 @@ class CodeWriter:
             if segment == "constant":
                 f_out.write(f"@{index}\n")
                 f_out.write(f"D=A\n")
+                # スタックに追加する
                 f_out.write(f"@SP\n")
                 f_out.write(f"A=M\n")
                 f_out.write(f"M=D\n")
                 f_out.write(f"@SP\n")
                 f_out.write(f"M=M+1\n")
                 return
+            elif segment in ["local", "argument", "this", "that", "temp"]:
+                if segment == "local":
+                    segment_name = "LCL"
+                elif segment == "argument":
+                    segment_name = "ARG"
+                elif segment == "this":
+                    segment_name = "THIS"
+                elif segment == "that":
+                    segment_name = "THAT"
+                elif segment == "temp":
+                    segment_name = "5" # tempの開始位置はRAM[5]固定
+
+                f_out.write(f"@{index}\n")
+                f_out.write(f"D=A\n")
+                f_out.write(f"@{segment_name}\n") # ここだけ違う
+                if segment == "temp":
+                    f_out.write(f"A=D+A\n") # tempの場合はRAM[5]-RAM[12]固定
+                else:
+                    f_out.write(f"A=D+M\n")
+                f_out.write(f"D=M\n")
+                # スタックに追加する
+                f_out.write(f"@SP\n")
+                f_out.write(f"A=M\n")
+                f_out.write(f"M=D\n")
+                f_out.write(f"@SP\n")
+                f_out.write(f"M=M+1\n")
+            else:
+                raise RuntimeError(f"サポート外のセグメントです: {segment}")
         elif command == "C_POP":
-            return
+            f_out.write(f"// pop {segment} {index}\n")
+            if segment in ["local", "argument", "this", "that", "temp"]:
+                if segment == "local":
+                    segment_name = "LCL"
+                elif segment == "argument":
+                    segment_name = "ARG"
+                elif segment == "this":
+                    segment_name = "THIS"
+                elif segment == "that":
+                    segment_name = "THAT"
+                elif segment == "temp":
+                    segment_name = "5" # tempの開始位置はRAM[5]固定
+
+                f_out.write(f"@{index}\n")
+                f_out.write(f"D=A\n")
+                f_out.write(f"@{segment_name}\n") # ここだけ違う
+                if segment == "temp":
+                    f_out.write(f"D=D+A\n") # tempの場合はRAM[5]-RAM[12]固定
+                else:
+                    f_out.write(f"D=D+M\n")
+                # セグメントのアドレスを一旦SPの位置においておく
+                f_out.write(f"@SP\n")
+                f_out.write(f"A=M\n")
+                f_out.write(f"M=D\n")
+                # スタックの1つ前の値をデータレジスタに入れる
+                f_out.write(f"@SP\n")
+                f_out.write(f"A=M-1\n")
+                f_out.write(f"D=M\n")
+                # 退避しておいたセグメントのアドレスに対してスタックの1つ前の値を設定する
+                f_out.write(f"@SP\n")
+                f_out.write(f"A=M\n")
+                f_out.write(f"A=M\n") # 退避しておいたセグメントのアドレスをAレジスタに読み込む
+                f_out.write(f"M=D\n")
+                # 最後にSPを1つ減らす
+                f_out.write(f"@SP\n")
+                f_out.write(f"M=M-1\n")
+            else:
+                raise RuntimeError(f"サポート外のセグメントです: {segment}")
         else:
             raise RuntimeError(f"サポート外のコマンドです: {command}")
 
