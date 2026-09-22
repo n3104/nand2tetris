@@ -8,6 +8,7 @@ class CodeWriter:
         self._f_out = file_path.open("w", encoding="utf-8")
         f_out = self._f_out
         self._label_num = 0
+        self._f_name = file_path.stem
 
     def write_arithmetic(self, command: str) -> None:
         if command in ["add", "sub", "and", "or"]:
@@ -118,7 +119,7 @@ class CodeWriter:
                 f_out.write(f"@SP\n")
                 f_out.write(f"M=M+1\n")
                 return
-            elif segment in ["local", "argument", "this", "that", "temp", "pointer"]:
+            elif segment in ["local", "argument", "this", "that", "temp", "pointer", "static"]:
                 if segment == "local":
                     segment_name = "LCL"
                 elif segment == "argument":
@@ -131,16 +132,23 @@ class CodeWriter:
                     segment_name = "5" # tempの開始位置はRAM[5]固定
                 elif segment == "pointer":
                     segment_name = "3" # pointerの開始位置はRAM[3]固定
+                elif segment == "static":
+                    segment_name = f"{self._f_name}.{index}" # staticの場合はファイル名.iという変数シンボルを利用する
 
-                f_out.write(f"@{index}\n")
-                f_out.write(f"D=A\n")
-                f_out.write(f"@{segment_name}\n") # まずここが違う
-                if segment in ["temp", "pointer"]:
-                    f_out.write(f"A=D+A\n") # tempの場合はRAM[5]-RAM[12]固定、pointerの場合はRAM[3]-RAM[4]固定
+                # スタックの値を設定するセグメントのアドレスをデータレジスタに設定する
+                if segment == "static": # staticの場合は変数シンボルのアドレスをそのまま使う
+                    f_out.write(f"@{segment_name}\n")
                 else:
-                    f_out.write(f"A=D+M\n")
+                    f_out.write(f"@{index}\n")
+                    f_out.write(f"D=A\n")
+                    f_out.write(f"@{segment_name}\n") # まずここが違う
+                    if segment in ["temp", "pointer"]: # RAMのアドレスを直接使用するセグメント
+                        f_out.write(f"A=D+A\n")
+                    else: # RAMのアドレスが示すメモリ上のアドレスを使用するセグメント
+                        f_out.write(f"A=D+M\n")
                 f_out.write(f"D=M\n")
-                # スタックに追加する
+
+                # セグメントのアドレスにスタックの先頭の値を設定し、SPを減らす
                 f_out.write(f"@SP\n")
                 f_out.write(f"A=M\n")
                 f_out.write(f"M=D\n")
@@ -150,7 +158,7 @@ class CodeWriter:
                 raise RuntimeError(f"サポート外のセグメントです: {segment}")
         elif command == "C_POP":
             f_out.write(f"// pop {segment} {index}\n")
-            if segment in ["local", "argument", "this", "that", "temp", "pointer"]:
+            if segment in ["local", "argument", "this", "that", "temp", "pointer", "static"]:
                 if segment == "local":
                     segment_name = "LCL"
                 elif segment == "argument":
@@ -163,14 +171,22 @@ class CodeWriter:
                     segment_name = "5" # tempの開始位置はRAM[5]固定
                 elif segment == "pointer":
                     segment_name = "3" # pointerの開始位置はRAM[3]固定
+                elif segment == "static":
+                    segment_name = f"{self._f_name}.{index}" # staticの場合はファイル名.iという変数シンボルを利用する
 
-                f_out.write(f"@{index}\n")
-                f_out.write(f"D=A\n")
-                f_out.write(f"@{segment_name}\n") # まずここが違う
-                if segment in ["temp", "pointer"]:
-                    f_out.write(f"D=D+A\n") # tempの場合はRAM[5]-RAM[12]固定、pointerの場合はRAM[3]-RAM[4]固定
+                # スタックに値を追加するセグメントのアドレスをデータレジスタに設定する
+                if segment == "static": # staticの場合は変数シンボルのアドレスをそのまま使う
+                    f_out.write(f"@{segment_name}\n")
+                    f_out.write(f"D=A\n")
                 else:
-                    f_out.write(f"D=D+M\n")
+                    f_out.write(f"@{index}\n")
+                    f_out.write(f"D=A\n")
+                    f_out.write(f"@{segment_name}\n") # まずここが違う
+                    if segment in ["temp", "pointer"]: # RAMのアドレスを直接使用するセグメント
+                        f_out.write(f"D=D+A\n")
+                    else: # RAMのアドレスが示すメモリ上のアドレスを使用するセグメント
+                        f_out.write(f"D=D+M\n")
+
                 # セグメントのアドレスを一旦SPの位置においておく
                 f_out.write(f"@SP\n")
                 f_out.write(f"A=M\n")
