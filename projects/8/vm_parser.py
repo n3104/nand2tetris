@@ -41,18 +41,25 @@ class Parser:
     def command_type(self) -> str:
         """現在のコマンドのタイプを返す"""
         line = self._current_line
-        if line.startswith("push"):
+        command = line.split()[0]
+        if command == "push":
             return "C_PUSH"
-        elif line.startswith("pop"):
+        elif command == "pop":
             return "C_POP"
-        else:
+        elif command in ["add", "sub", "neg", "eq", "gt", "lt", "and", "or", "not"]:
             return "C_ARITHMETIC"
+        elif command == "label":
+            return "C_LABEL"
+        elif command == "if-goto":
+            return "C_IF"
+        else:
+            raise RuntimeError(f"サポート外のコマンドです: {command}")
 
     def arg1(self) -> str:
         """現在のコマンドの第1引数を返す"""
         command_type = self.command_type()
         line = self._current_line
-        if command_type == "C_PUSH" or command_type == "C_POP":
+        if command_type in ["C_PUSH", "C_POP", "C_LABEL", "C_IF"]:
             return line.split()[1]
         elif command_type == "C_ARITHMETIC":
             return line
@@ -63,7 +70,7 @@ class Parser:
         """現在のコマンドの第2引数を返す"""
         command_type = self.command_type()
         line = self._current_line
-        if command_type == "C_PUSH" or command_type == "C_POP":
+        if command_type in ["C_PUSH", "C_POP"]:
             return line.split()[2]
         else:
             raise RuntimeError(f"サポート外のコマンドです: {command_type}")

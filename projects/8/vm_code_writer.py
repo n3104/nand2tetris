@@ -206,6 +206,25 @@ class CodeWriter:
         else:
             raise RuntimeError(f"サポート外のコマンドです: {command}")
 
+    def write_label(self, label: str) -> None:
+        f_out = self._f_out
+        f_out.write(f"// write label {label}\n")
+        f_out.write(f"({label})\n")
+
+    def write_if(self, label: str) -> None:
+        f_out = self._f_out
+        f_out.write(f"// write if {label}\n")
+        # スタックの先頭の値をデータレジスタに入れる
+        f_out.write(f"@SP\n")
+        f_out.write(f"A=M-1\n")
+        f_out.write(f"D=M\n")
+        # SPを1つ減らす
+        f_out.write(f"@SP\n")
+        f_out.write(f"M=M-1\n")
+        # false(0)でなければラベルにジャンプする
+        f_out.write(f"@{label}\n")
+        f_out.write(f"D;JNE\n")
+
     def close(self) -> None:
         # 最後に無限ループを入れておく
         f_out = self._f_out
