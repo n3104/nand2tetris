@@ -25,8 +25,6 @@ class Parser:
 
             line = self._lines[self._line_number]
             self._line_number += 1
-            print(line)
-
             # コメント部分を除去
             code_part = line.split("//")[0]
             # 空白と改行コードを取り除いて空行かどうか判定

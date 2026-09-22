@@ -21,7 +21,6 @@ def main() -> None:
         while parser.has_more_lines̶():
             parser.advance̶()
             command_type = parser.command_type()
-            print(command_type)
             if command_type == "C_PUSH" or command_type == "C_POP":
                 code_writer.write_push_pop(command_type, parser.arg1(), parser.arg2())
             elif command_type == "C_ARITHMETIC":
