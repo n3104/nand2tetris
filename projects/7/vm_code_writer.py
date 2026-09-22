@@ -118,7 +118,7 @@ class CodeWriter:
                 f_out.write(f"@SP\n")
                 f_out.write(f"M=M+1\n")
                 return
-            elif segment in ["local", "argument", "this", "that", "temp"]:
+            elif segment in ["local", "argument", "this", "that", "temp", "pointer"]:
                 if segment == "local":
                     segment_name = "LCL"
                 elif segment == "argument":
@@ -129,12 +129,14 @@ class CodeWriter:
                     segment_name = "THAT"
                 elif segment == "temp":
                     segment_name = "5" # tempの開始位置はRAM[5]固定
+                elif segment == "pointer":
+                    segment_name = "3" # pointerの開始位置はRAM[3]固定
 
                 f_out.write(f"@{index}\n")
                 f_out.write(f"D=A\n")
-                f_out.write(f"@{segment_name}\n") # ここだけ違う
-                if segment == "temp":
-                    f_out.write(f"A=D+A\n") # tempの場合はRAM[5]-RAM[12]固定
+                f_out.write(f"@{segment_name}\n") # まずここが違う
+                if segment in ["temp", "pointer"]:
+                    f_out.write(f"A=D+A\n") # tempの場合はRAM[5]-RAM[12]固定、pointerの場合はRAM[3]-RAM[4]固定
                 else:
                     f_out.write(f"A=D+M\n")
                 f_out.write(f"D=M\n")
@@ -148,7 +150,7 @@ class CodeWriter:
                 raise RuntimeError(f"サポート外のセグメントです: {segment}")
         elif command == "C_POP":
             f_out.write(f"// pop {segment} {index}\n")
-            if segment in ["local", "argument", "this", "that", "temp"]:
+            if segment in ["local", "argument", "this", "that", "temp", "pointer"]:
                 if segment == "local":
                     segment_name = "LCL"
                 elif segment == "argument":
@@ -159,12 +161,14 @@ class CodeWriter:
                     segment_name = "THAT"
                 elif segment == "temp":
                     segment_name = "5" # tempの開始位置はRAM[5]固定
+                elif segment == "pointer":
+                    segment_name = "3" # pointerの開始位置はRAM[3]固定
 
                 f_out.write(f"@{index}\n")
                 f_out.write(f"D=A\n")
-                f_out.write(f"@{segment_name}\n") # ここだけ違う
-                if segment == "temp":
-                    f_out.write(f"D=D+A\n") # tempの場合はRAM[5]-RAM[12]固定
+                f_out.write(f"@{segment_name}\n") # まずここが違う
+                if segment in ["temp", "pointer"]:
+                    f_out.write(f"D=D+A\n") # tempの場合はRAM[5]-RAM[12]固定、pointerの場合はRAM[3]-RAM[4]固定
                 else:
                     f_out.write(f"D=D+M\n")
                 # セグメントのアドレスを一旦SPの位置においておく
