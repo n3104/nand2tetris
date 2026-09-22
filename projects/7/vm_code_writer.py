@@ -186,18 +186,16 @@ class CodeWriter:
                         f_out.write(f"D=D+A\n")
                     else: # RAMのアドレスが示すメモリ上のアドレスを使用するセグメント
                         f_out.write(f"D=D+M\n")
-
-                # セグメントのアドレスを一旦SPの位置においておく
-                f_out.write(f"@SP\n")
-                f_out.write(f"A=M\n")
+                # データレジスタが1つだと足りないのでセグメントのアドレスを一旦R13の位置に退避しておく
+                f_out.write(f"@R13\n")
                 f_out.write(f"M=D\n")
-                # スタックの1つ前の値をデータレジスタに入れる
+
+                # スタックの先頭の値をデータレジスタに入れる
                 f_out.write(f"@SP\n")
                 f_out.write(f"A=M-1\n")
                 f_out.write(f"D=M\n")
-                # 退避しておいたセグメントのアドレスに対してスタックの1つ前の値を設定する
-                f_out.write(f"@SP\n")
-                f_out.write(f"A=M\n")
+                # 退避しておいたセグメントのアドレスに対してスタックの先頭の値を設定する
+                f_out.write(f"@R13\n")
                 f_out.write(f"A=M\n") # 退避しておいたセグメントのアドレスをAレジスタに読み込む
                 f_out.write(f"M=D\n")
                 # 最後にSPを1つ減らす
