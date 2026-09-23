@@ -211,6 +211,12 @@ class CodeWriter:
         f_out.write(f"// write label {label}\n")
         f_out.write(f"({label})\n")
 
+    def write_goto(self, label: str) -> None:
+        f_out = self._f_out
+        f_out.write(f"// write goto {label}\n")
+        f_out.write(f"@{label}\n")
+        f_out.write(f"0;JMP\n")
+
     def write_if(self, label: str) -> None:
         f_out = self._f_out
         f_out.write(f"// write if {label}\n")
@@ -229,7 +235,7 @@ class CodeWriter:
         # 最後に無限ループを入れておく
         f_out = self._f_out
         f_out.write(f"// END loop\n")
-        f_out.write(f"(END)\n")
-        f_out.write(f"@END\n")
+        f_out.write(f"($$END)\n")
+        f_out.write(f"@$$END\n")
         f_out.write(f"0;JMP") # 最終行は改行コードを入れない
         return self._f_out.close()

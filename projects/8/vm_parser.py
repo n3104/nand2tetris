@@ -50,6 +50,8 @@ class Parser:
             return "C_ARITHMETIC"
         elif command == "label":
             return "C_LABEL"
+        elif command == "goto":
+            return "C_GOTO"
         elif command == "if-goto":
             return "C_IF"
         else:
@@ -59,7 +61,7 @@ class Parser:
         """現在のコマンドの第1引数を返す"""
         command_type = self.command_type()
         line = self._current_line
-        if command_type in ["C_PUSH", "C_POP", "C_LABEL", "C_IF"]:
+        if command_type in ["C_PUSH", "C_POP", "C_LABEL", "C_GOTO", "C_IF"]:
             return line.split()[1]
         elif command_type == "C_ARITHMETIC":
             return line
