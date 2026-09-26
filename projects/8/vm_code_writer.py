@@ -231,11 +231,83 @@ class CodeWriter:
         f_out.write(f"@{label}\n")
         f_out.write(f"D;JNE\n")
 
+    def write_function(self, function_name: str, n_args: int) -> None:
+        f_out = self._f_out
+        f_out.write(f"// write function {function_name} {n_args}\n")
+        f_out.write(f"({function_name})\n")
+        # ローカル変数の初期化
+        for i in range(n_args):
+            f_out.write(f"@{i}\n")
+            f_out.write(f"D=A\n")
+            f_out.write(f"@LCL\n")
+            f_out.write(f"A=D+M\n")
+            f_out.write(f"M=0\n")
+
+    def write_return(self) -> None:
+        f_out = self._f_out
+        f_out.write(f"// write return\n")
+        # frame = LCL
+        f_out.write(f"@LCL\n")
+        f_out.write(f"D=M\n")
+        f_out.write(f"@R14\n") # frame。R13をwrite_push_popで使用するのでR14とする
+        f_out.write(f"M=D\n")
+        # retAddr = *(frame - 5)
+        f_out.write(f"@5\n")
+        f_out.write(f"D=A\n")
+        f_out.write(f"@R14\n") # frame
+        f_out.write(f"A=M-D\n")
+        f_out.write(f"D=M\n")
+        f_out.write(f"@R15\n") # retAddr
+        f_out.write(f"M=D\n")
+        # *ARG = pop()
+        self.write_push_pop("C_POP", "argument", 0)
+        # SP = ARG + 1
+        f_out.write(f"@ARG\n")
+        f_out.write(f"D=M+1\n")
+        f_out.write(f"@SP\n")
+        f_out.write(f"M=D\n")
+        # THAT = *(frame - 1)
+        f_out.write(f"@1\n")
+        f_out.write(f"D=A\n")
+        f_out.write(f"@R14\n") # frame
+        f_out.write(f"A=M-D\n")
+        f_out.write(f"D=M\n")
+        f_out.write(f"@THAT\n")
+        f_out.write(f"M=D\n")
+        # THIS = *(frame - 2)
+        f_out.write(f"@2\n")
+        f_out.write(f"D=A\n")
+        f_out.write(f"@R14\n") # frame
+        f_out.write(f"A=M-D\n")
+        f_out.write(f"D=M\n")
+        f_out.write(f"@THIS\n")
+        f_out.write(f"M=D\n")
+        # ARG = *(frame - 3)
+        f_out.write(f"@3\n")
+        f_out.write(f"D=A\n")
+        f_out.write(f"@R14\n") # frame
+        f_out.write(f"A=M-D\n")
+        f_out.write(f"D=M\n")
+        f_out.write(f"@ARG\n")
+        f_out.write(f"M=D\n")
+        # LCL = *(frame - 4)
+        f_out.write(f"@4\n")
+        f_out.write(f"D=A\n")
+        f_out.write(f"@R14\n") # frame
+        f_out.write(f"A=M-D\n")
+        f_out.write(f"D=M\n")
+        f_out.write(f"@LCL\n")
+        f_out.write(f"M=D\n")
+        # goto retAddr
+        f_out.write(f"@R15\n") # retAddr
+        f_out.write(f"A=M\n")
+        f_out.write(f"0;JMP\n")
+
     def close(self) -> None:
         # 最後に無限ループを入れておく
         f_out = self._f_out
         f_out.write(f"// END loop\n")
-        f_out.write(f"($$END)\n")
-        f_out.write(f"@$$END\n")
+        f_out.write(f"($$END$$)\n")
+        f_out.write(f"@$$END$$\n")
         f_out.write(f"0;JMP") # 最終行は改行コードを入れない
         return self._f_out.close()
