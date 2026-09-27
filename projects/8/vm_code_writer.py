@@ -10,6 +10,9 @@ class CodeWriter:
         self._label_num = 0
         self._f_name = file_path.stem
 
+    def set_file_name(self, file_name: str) -> None:
+        self._f_name = Path(file_name).stem
+
     def write_arithmetic(self, command: str) -> None:
         if command in ["add", "sub", "and", "or"]:
             self._write_binary_op(command)
