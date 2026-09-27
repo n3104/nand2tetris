@@ -246,19 +246,24 @@ class CodeWriter:
     def write_return(self) -> None:
         f_out = self._f_out
         f_out.write(f"// write return\n")
+
+        def restore_frame(segment:str, index: int):
+            f_out.write(f"// restore frame {segment} {index}\n")
+            f_out.write(f"@{index}\n")
+            f_out.write(f"D=A\n")
+            f_out.write(f"@R14\n") # frame
+            f_out.write(f"A=M-D\n")
+            f_out.write(f"D=M\n")
+            f_out.write(f"@{segment}\n")
+            f_out.write(f"M=D\n")
+
         # frame = LCL
         f_out.write(f"@LCL\n")
         f_out.write(f"D=M\n")
         f_out.write(f"@R14\n") # frame。R13をwrite_push_popで使用するのでR14とする
         f_out.write(f"M=D\n")
         # retAddr = *(frame - 5)
-        f_out.write(f"@5\n")
-        f_out.write(f"D=A\n")
-        f_out.write(f"@R14\n") # frame
-        f_out.write(f"A=M-D\n")
-        f_out.write(f"D=M\n")
-        f_out.write(f"@R15\n") # retAddr
-        f_out.write(f"M=D\n")
+        restore_frame("R15", 5) # R15をretAddrとする
         # *ARG = pop()
         self.write_push_pop("C_POP", "argument", 0)
         # SP = ARG + 1
@@ -267,37 +272,13 @@ class CodeWriter:
         f_out.write(f"@SP\n")
         f_out.write(f"M=D\n")
         # THAT = *(frame - 1)
-        f_out.write(f"@1\n")
-        f_out.write(f"D=A\n")
-        f_out.write(f"@R14\n") # frame
-        f_out.write(f"A=M-D\n")
-        f_out.write(f"D=M\n")
-        f_out.write(f"@THAT\n")
-        f_out.write(f"M=D\n")
+        restore_frame("THAT", 1)
         # THIS = *(frame - 2)
-        f_out.write(f"@2\n")
-        f_out.write(f"D=A\n")
-        f_out.write(f"@R14\n") # frame
-        f_out.write(f"A=M-D\n")
-        f_out.write(f"D=M\n")
-        f_out.write(f"@THIS\n")
-        f_out.write(f"M=D\n")
+        restore_frame("THIS", 2)
         # ARG = *(frame - 3)
-        f_out.write(f"@3\n")
-        f_out.write(f"D=A\n")
-        f_out.write(f"@R14\n") # frame
-        f_out.write(f"A=M-D\n")
-        f_out.write(f"D=M\n")
-        f_out.write(f"@ARG\n")
-        f_out.write(f"M=D\n")
+        restore_frame("ARG", 3)
         # LCL = *(frame - 4)
-        f_out.write(f"@4\n")
-        f_out.write(f"D=A\n")
-        f_out.write(f"@R14\n") # frame
-        f_out.write(f"A=M-D\n")
-        f_out.write(f"D=M\n")
-        f_out.write(f"@LCL\n")
-        f_out.write(f"M=D\n")
+        restore_frame("LCL", 4)
         # goto retAddr
         f_out.write(f"@R15\n") # retAddr
         f_out.write(f"A=M\n")
