@@ -4,14 +4,25 @@ from pathlib import Path
 
 class CodeWriter:
 
-    def __init__(self, file_path: Path, encoding: str = "utf-8"):
+    def __init__(self, file_path: Path, encoding: str = "utf-8", with_bootstrap: bool = False):
         self._f_out = file_path.open("w", encoding="utf-8")
         f_out = self._f_out
-        self._label_num = 0
+        self._comparison_label_num = 0
         self._f_name = file_path.stem
+        self._function_name = "" # functionを利用していないケースもあるので空文字列に初期化しておく
+        self._ret_label_index = 0
+        if with_bootstrap:
+            f_out.write(f"// bootstrap\n")
+            f_out.write(f"@256\n")
+            f_out.write(f"D=A\n")
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=D\n")
+            # call Sys.init
+            self.write_call("Sys.init", 0)
 
     def set_file_name(self, file_name: str) -> None:
         self._f_name = Path(file_name).stem
+        self._function_name = "" # ファイルが変わったので空文字列に初期化しておく
 
     def write_arithmetic(self, command: str) -> None:
         if command in ["add", "sub", "and", "or"]:
@@ -82,8 +93,8 @@ class CodeWriter:
         # 比較できるようにまず減算する
         self._write_binary_op("sub")
         # 1つ手前の値で判定する。SPの変更は不要
-        self._label_num += 1
-        label_num = self._label_num
+        self._comparison_label_num += 1
+        label_num = self._comparison_label_num
         f_out.write(f"@SP\n")
         f_out.write(f"A=M-1\n")
         f_out.write(f"D=M\n")
@@ -212,12 +223,12 @@ class CodeWriter:
     def write_label(self, label: str) -> None:
         f_out = self._f_out
         f_out.write(f"// write label {label}\n")
-        f_out.write(f"({label})\n")
+        f_out.write(f"({self._function_name}${label})\n")
 
     def write_goto(self, label: str) -> None:
         f_out = self._f_out
         f_out.write(f"// write goto {label}\n")
-        f_out.write(f"@{label}\n")
+        f_out.write(f"@{self._function_name}${label}\n")
         f_out.write(f"0;JMP\n")
 
     def write_if(self, label: str) -> None:
@@ -231,20 +242,73 @@ class CodeWriter:
         f_out.write(f"@SP\n")
         f_out.write(f"M=M-1\n")
         # false(0)でなければラベルにジャンプする
-        f_out.write(f"@{label}\n")
+        f_out.write(f"@{self._function_name}${label}\n")
         f_out.write(f"D;JNE\n")
 
-    def write_function(self, function_name: str, n_args: int) -> None:
+    def write_function(self, function_name: str, n_vars: int) -> None:
         f_out = self._f_out
-        f_out.write(f"// write function {function_name} {n_args}\n")
+        f_out.write(f"// write function {function_name} {n_vars}\n")
+        self._function_name = function_name
+        self._ret_label_index = 0 # returnアドレスのシンボルのindexは関数毎に0から始まるように初期化する
         f_out.write(f"({function_name})\n")
         # ローカル変数の初期化
-        for i in range(n_args):
+        for i in range(n_vars):
             f_out.write(f"@{i}\n")
             f_out.write(f"D=A\n")
             f_out.write(f"@LCL\n")
             f_out.write(f"A=D+M\n")
             f_out.write(f"M=0\n")
+
+    def write_call(self, function_name: str, n_args: int) -> None:
+        f_out = self._f_out
+
+        def store_frame(segment:str, is_return_address_label: bool = False):
+            f_out.write(f"// store frame {segment}\n")
+            # 対象セグメントのアドレスをDレジスタに入れる
+            f_out.write(f"@{segment}\n")
+            if is_return_address_label:
+                f_out.write(f"D=A\n") # ラベルなので直接アドレスを入れる
+            else:
+                f_out.write(f"D=M\n")
+            # スタックに追加する
+            f_out.write(f"@SP\n")
+            f_out.write(f"A=M\n")
+            f_out.write(f"M=D\n")
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=M+1\n")
+
+        f_out.write(f"// call function {function_name} {n_args}\n")
+        # push returnAddress
+        return_address_label = f"{self._function_name}$ret.{self._ret_label_index}"
+        self._ret_label_index += 1
+        store_frame(return_address_label, is_return_address_label=True)
+        # push LCL
+        store_frame("LCL")
+        # push ARG
+        store_frame("ARG")
+        # push THIS
+        store_frame("THIS")
+        # push THAT
+        store_frame("THAT")
+        # ARG = SP-5-nArgs
+        f_out.write(f"@5\n")
+        f_out.write(f"D=A\n")
+        f_out.write(f"@{n_args}\n")
+        f_out.write(f"D=D+A\n")
+        f_out.write(f"@SP\n")
+        f_out.write(f"D=M-D\n")
+        f_out.write(f"@ARG\n")
+        f_out.write(f"M=D\n")
+        # LCL = SP
+        f_out.write(f"@SP\n")
+        f_out.write(f"D=M\n")
+        f_out.write(f"@LCL\n")
+        f_out.write(f"M=D\n")
+        # goto f
+        f_out.write(f"@{function_name}\n")
+        f_out.write(f"0;JMP\n")
+        # (returnAddress)
+        f_out.write(f"({return_address_label})\n")
 
     def write_return(self) -> None:
         f_out = self._f_out

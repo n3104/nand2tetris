@@ -19,11 +19,12 @@ def main() -> None:
             raise RuntimeError(f"VMファイルではありません: {vm_file_path}")
         asm_file_path = Path(vm_file_path.parent, vm_file_path.stem + ".asm")
         vm_files = [vm_file_path]
+        code_writer = CodeWriter(asm_file_path)
     elif vm_file_path.is_dir():
         asm_file_path = Path(vm_file_path, vm_file_path.name + ".asm")
         vm_files = list(vm_file_path.glob("*.vm"))
+        code_writer = CodeWriter(asm_file_path, with_bootstrap=True)
 
-    code_writer = CodeWriter(asm_file_path)
     try:
         for vm_file_path in vm_files:
             parser = Parser(vm_file_path)
@@ -45,6 +46,8 @@ def main() -> None:
                     code_writer.write_function(parser.arg1(), int(parser.arg2()))
                 elif command_type == "C_RETURN":
                     code_writer.write_return()
+                elif command_type == "C_CALL":
+                    code_writer.write_call(parser.arg1(), int(parser.arg2()))
                 else:
                     raise RuntimeError(f"サポート外のコマンドです: {command_type}")
     finally:

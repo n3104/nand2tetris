@@ -58,6 +58,8 @@ class Parser:
             return "C_FUNCTION"
         elif command == "return":
             return "C_RETURN"
+        elif command == "call":
+            return "C_CALL"
         else:
             raise RuntimeError(f"サポート外のコマンドです: {command}")
 
@@ -65,7 +67,7 @@ class Parser:
         """現在のコマンドの第1引数を返す"""
         command_type = self.command_type()
         line = self._current_line
-        if command_type in ["C_PUSH", "C_POP", "C_LABEL", "C_GOTO", "C_IF", "C_FUNCTION"]:
+        if command_type in ["C_PUSH", "C_POP", "C_LABEL", "C_GOTO", "C_IF", "C_FUNCTION", "C_CALL"]:
             return line.split()[1]
         elif command_type == "C_ARITHMETIC":
             return line
@@ -76,7 +78,7 @@ class Parser:
         """現在のコマンドの第2引数を返す"""
         command_type = self.command_type()
         line = self._current_line
-        if command_type in ["C_PUSH", "C_POP", "C_FUNCTION"]:
+        if command_type in ["C_PUSH", "C_POP", "C_FUNCTION", "C_CALL"]:
             return line.split()[2]
         else:
             raise RuntimeError(f"サポート外のコマンドです: {command_type}")
