@@ -162,7 +162,7 @@ class CodeWriter:
                         f_out.write(f"A=D+M\n")
                 f_out.write(f"D=M\n")
 
-                # セグメントのアドレスにスタックの先頭の値を設定し、SPを減らす
+                # スタックの先頭の値を設定し、SPを増やす
                 f_out.write(f"@SP\n")
                 f_out.write(f"A=M\n")
                 f_out.write(f"M=D\n")
@@ -258,6 +258,9 @@ class CodeWriter:
             f_out.write(f"@LCL\n")
             f_out.write(f"A=D+M\n")
             f_out.write(f"M=0\n")
+            # SPをインクリメントする
+            f_out.write(f"@SP\n")
+            f_out.write(f"M=M+1\n")
 
     def write_call(self, function_name: str, n_args: int) -> None:
         f_out = self._f_out
