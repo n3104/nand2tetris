@@ -2,6 +2,7 @@
 import html
 import sys
 import time
+from jack_compilation_engine import CompilationEngine
 from jack_tokenizer import JackTokenizer
 from pathlib import Path
 
@@ -26,6 +27,9 @@ def main() -> None:
     out_dir_path.mkdir(parents=True, exist_ok=True)
     for jack_file_path in jack_files:
         token_file_path = Path(out_dir_path, jack_file_path.stem + "T.xml")
+        compilation_engine_output_file_path = Path(out_dir_path, jack_file_path.stem + ".xml")
+        compilation_engine = CompilationEngine(jack_file_path, compilation_engine_output_file_path)
+        compilation_engine.compile_class()
         with token_file_path.open("w", encoding="utf-8") as f_out:
             tokenizer = JackTokenizer(jack_file_path)
             f_out.write(f"<tokens>\n")
